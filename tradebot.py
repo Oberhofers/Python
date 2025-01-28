@@ -1,175 +1,183 @@
-import requests
-import pandas as pd
+import os
 import time
+import pandas as pd
+import logging
+from logging.handlers import RotatingFileHandler
+from binance.client import Client
 
-# Replace with your Bitpanda API key
-API_KEY = "your_bitpanda_api_key"
-BASE_URL = "https://api.bitpanda.com/v1"
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+# Define the log file and rotation settings
+log_file = 'tradebot.log'
+max_log_size = 1024 * 1024 * 1024  # 1GB
+backup_count = 5
 
-# Switch between live trading and simulation
-LIVE_TRADING_MODE = False  # Set this to True for live trading, False for simulation
 
-# Trade performance tracking
-trade_history = []  # List to track past trades
-total_wins = 0
-total_losses = 0
-total_profit = 0.0
+# Create a rotating file handler
+handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=backup_count)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
 
-# Simulate an order (for simulation mode)
-def simulate_order(asset_symbol, fiat, amount, action="buy", price=None):
-    print(f"Simulated {action.capitalize()} order: {amount} {fiat} worth of {asset_symbol}")
-    return {"action": action, "symbol": asset_symbol, "amount": amount, "price": price}
+# Configure the root logger
+logging.basicConfig(
+    level=logging.DEBUG,  # Adjust to DEBUG for detailed logs
+    handlers=[handler]
+)
 
-# Place a market order (for live trading mode)
-def place_market_order(asset_symbol, fiat, amount, action="buy"):
-    global total_wins, total_losses, total_profit
-    if LIVE_TRADING_MODE:
-        order_type = "buy" if action == "buy" else "sell"
-        url = f"{BASE_URL}/orders"
-        payload = {
-            "type": "MARKET",
-            "instrument_code": f"{asset_symbol}_{fiat}",
-            "amount": amount,
-            "side": order_type,
-        }
-        response = requests.post(url, headers=HEADERS, json=payload)
-        if response.status_code == 200:
-            order = response.json()
-            print(f"{action.capitalize()} order successful: {order}")
-            return order
-        else:
-            print(f"Error placing {action} order: {response.status_code} - {response.text}")
-            return None
-    else:
-        # Simulate the order if in simulation mode
-        if action == "buy":
-            # For simulation, we assume the price is passed (e.g., current market price)
-            price = 100  # This should be fetched dynamically based on market conditions
-            print(f"Simulated buy at price {price}")
-            return simulate_order(asset_symbol, fiat, amount, action, price)
-        elif action == "sell":
-            price = 110  # Again, fetch the actual price in a real scenario
-            print(f"Simulated sell at price {price}")
-            # Track the outcome (win or loss) based on price comparison
-            trade_history.append({"symbol": asset_symbol, "buy_price": 100, "sell_price": price, "amount": amount})
-            profit_or_loss = (price - 100) * amount  # Example calculation: profit/loss = (sell price - buy price) * amount
-            if profit_or_loss > 0:
-                total_wins += 1
-                total_profit += profit_or_loss
-            else:
-                total_losses += 1
-                total_profit += profit_or_loss
-            print(f"Simulated trade outcome: Profit/Loss = {profit_or_loss}")
-            return simulate_order(asset_symbol, fiat, amount, action, price)
+# Test logging
+logging.info("Logging system initialized successfully!")
 
-# Fetch all tradable assets
-def fetch_all_assets():
-    url = f"{BASE_URL}/assets"
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code == 200:
-        assets = response.json()
-        tradable_assets = [asset for asset in assets if asset.get("tradable")]
-        return tradable_assets
-    else:
-        print(f"Error fetching assets: {response.status_code} - {response.text}")
-        return []
+# Set up your Binance API keys
+api_key = os.getenv('BINANCE_API_KEY')
+api_secret = os.getenv('BINANCE_API_SECRET')
 
-# Fetch historical data
-def fetch_historical_data(asset_symbol, fiat="EUR", period="5m", limit=300):
-    url = f"{BASE_URL}/candlesticks/{asset_symbol}_{fiat}"
-    params = {"period": period, "limit": limit}
-    response = requests.get(url, headers=HEADERS, params=params)
-    if response.status_code == 200:
-        data = response.json().get("candlesticks", [])
-        df = pd.DataFrame(data, columns=["time", "open", "high", "low", "close", "volume"])
-        df["time"] = pd.to_datetime(df["time"], unit="s")
-        df["close"] = df["close"].astype(float)
-        return df
-    else:
-        print(f"Error fetching historical data for {asset_symbol}: {response.status_code} - {response.text}")
-        return pd.DataFrame()
+client = Client(api_key, api_secret)
 
-# Calculate indicators
-def calculate_indicators(df):
-    df["SMA20"] = df["close"].rolling(window=20).mean()
-    df["SMA50"] = df["close"].rolling(window=50).mean()
-    df["RSI"] = calculate_rsi(df["close"])
-    df["BB_upper"], df["BB_lower"] = calculate_bollinger_bands(df["close"])
+# Trading parameters
+symbols = ['DOGEUSDT', 'SHIBUSDT', 'SPELLUSDT', 'ANIMEUSDT']
+usdt_amount = 10  # Amount in USDT to trade
+lookback = 100  # Lookback period for historical data
+bollinger_window = 20  # Lookback period for Bollinger Bands
+bollinger_std_dev = 2  # Standard deviation for Bollinger Bands
+cooldown_period = 60  # Cooldown period in seconds
+last_buy_time = {symbol: 0 for symbol in symbols}  # Track last buy time for each symbol
+
+
+usdt_balance = client.get_asset_balance(asset='USDT')
+logging.info(f"USDT Balance: {usdt_balance}")
+
+# Helper functions
+def get_ohlcv(symbol, interval='1h', lookback=100):
+    """Fetch historical OHLCV data."""
+    klines = client.get_historical_klines(symbol, interval, f"{lookback} hours ago UTC")
+    ohlcv = []
+    for kline in klines:
+        ohlcv.append([float(x) for x in kline[:5]])  # Open, High, Low, Close, Volume
+    return pd.DataFrame(ohlcv, columns=['open', 'high', 'low', 'close', 'volume'])
+
+def calculate_bollinger_bands(df, window=20, std_dev=2):
+    """Calculate Bollinger Bands."""
+    df['SMA'] = df['close'].rolling(window=window).mean()
+    df['STD'] = df['close'].rolling(window=window).std()
+    df['upper_band'] = df['SMA'] + (df['STD'] * std_dev)
+    df['lower_band'] = df['SMA'] - (df['STD'] * std_dev)
     return df
 
-def calculate_rsi(series, period=14):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+def calculate_rsi(df, window=14):
+    """Calculate the Relative Strength Index (RSI)."""
+    delta = df['close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
     rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+    df['RSI'] = 100 - (100 / (1 + rs))
+    return df
 
-def calculate_bollinger_bands(series, window=20, num_std_dev=2):
-    sma = series.rolling(window=window).mean()
-    std_dev = series.rolling(window=window).std()
-    upper_band = sma + num_std_dev * std_dev
-    lower_band = sma - num_std_dev * std_dev
-    return upper_band, lower_band
+def is_uptrend(df, sma_period=50):
+    """Check if the asset is in an uptrend."""
+    df['SMA'] = df['close'].rolling(window=sma_period).mean()
+    return df['close'].iloc[-1] > df['SMA'].iloc[-1]
 
-# Intelligent live trading
-def live_trading(asset_symbol, fiat, trade_amount):
-    print(f"Fetching historical data for {asset_symbol}...")
-    historical_data = fetch_historical_data(asset_symbol, fiat)
-    if historical_data.empty:
-        print(f"No data available for {asset_symbol}.")
-        return
+def is_too_volatile(df, threshold=5):
+    """Check if price changes are too volatile."""
+    recent_change = abs(df['close'].iloc[-1] - df['close'].iloc[-2]) / df['close'].iloc[-2] * 100
+    return recent_change > threshold
 
-    print("Calculating indicators...")
-    historical_data = calculate_indicators(historical_data)
+def calculate_quantity_in_usdt(symbol, usdt_amount):
+    """Calculate the quantity to buy or sell based on USDT amount."""
+    symbol_info = client.get_symbol_info(symbol)
+    lot_size_filter = next(filter(lambda x: x['filterType'] == 'LOT_SIZE', symbol_info['filters']))
+    min_qty = float(lot_size_filter['minQty'])
+    step_size = float(lot_size_filter['stepSize'])
+    symbol_price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+    quantity = usdt_amount / symbol_price
+    quantity = (quantity // step_size) * step_size
+    return max(quantity, min_qty)
 
-    # Check the latest price and indicators
-    latest_data = historical_data.iloc[-1]
-    current_price = latest_data["close"]
-    sma20 = latest_data["SMA20"]
-    sma50 = latest_data["SMA50"]
-    rsi = latest_data["RSI"]
-    bb_upper = latest_data["BB_upper"]
-    bb_lower = latest_data["BB_lower"]
+# Trading logic
+def check_buy_signal(symbol, df, threshold=1.05):
+    """Check buy signal using Bollinger Bands, RSI, and trend filters."""
+    lower_band = df['lower_band'].iloc[-1]
+    close_price = df['close'].iloc[-1]
+    rsi = df['RSI'].iloc[-1]
+   
+    if close_price < lower_band * threshold and is_uptrend(df) and rsi > 20 and not is_too_volatile(df):
+        return True
+    return False
 
-    # Buy condition: RSI < 30 and price below lower Bollinger Band
-    if rsi < 30 and current_price < bb_lower:
-        print(f"Buying {asset_symbol} - Current Price: {current_price}, RSI: {rsi}")
-        place_market_order(asset_symbol, fiat, trade_amount, action="buy")
+def check_sell_signal(symbol, df):
+    """Check sell signal using Bollinger Bands."""
+    upper_band = df['upper_band'].iloc[-1]
+    close_price = df['close'].iloc[-1]
+    return close_price > upper_band
 
-    # Sell condition: RSI > 70 or price above upper Bollinger Band
-    elif rsi > 70 or current_price > bb_upper:
-        print(f"Selling {asset_symbol} - Current Price: {current_price}, RSI: {rsi}")
-        place_market_order(asset_symbol, fiat, trade_amount, action="sell")
+def place_buy_order(symbol, quantity):
+    """Place a market buy order with a stop-loss."""
+    try:
+        order = client.order_market_buy(symbol=symbol, quantity=quantity)
+        buy_price = float(order['fills'][0]['price'])
+        stop_loss_price = buy_price * 0.95  # 5% stop-loss
 
-# Main function
-def main():
-    print("Fetching all tradable assets...")
-    assets = fetch_all_assets()
-    if not assets:
-        print("No tradable assets found.")
-        return
+        stop_loss_order = client.create_order(
+            symbol=symbol,
+            side='SELL',
+            type='STOP_LOSS_LIMIT',
+            quantity=quantity,
+            price=round(stop_loss_price, 2),
+            stopPrice=round(stop_loss_price, 2)
+        )
+        logging.info(f"Buy order placed for {symbol}: {order}")
+        logging.info(f"Stop-loss order placed for {symbol} at {stop_loss_price}")
+    except Exception as e:
+        logging.error(f"Error placing buy order for {symbol}: {e}")
 
-    print(f"Found {len(assets)} tradable assets.")
-    trade_amount = 10  # EUR to trade per transaction
+def place_sell_order(symbol):
+    """Place a market sell order."""
+    try:
+        # Get the free balance of the asset
+        asset = symbol.replace('USDT', '')
+        asset_balance = float(client.get_asset_balance(asset=asset)['free'])
+        
+        # Get symbol info for precision details
+        symbol_info = client.get_symbol_info(symbol)
+        lot_size_filter = next(filter(lambda x: x['filterType'] == 'LOT_SIZE', symbol_info['filters']))
+        min_qty = float(lot_size_filter['minQty'])
+        step_size = float(lot_size_filter['stepSize'])
 
-    while True:
-        for asset in assets:
-            asset_symbol = asset.get("symbol")
-            asset_name = asset.get("name")
-            print(f"Checking trading opportunities for {asset_name} ({asset_symbol})...")
-            live_trading(asset_symbol, "EUR", trade_amount)
+        # Adjust the quantity to match the step size and minimum quantity
+        quantity = (asset_balance // step_size) * step_size
+        quantity = round(quantity, len(str(step_size).split('.')[1]))  # Ensure proper precision
 
-            # Respect API rate limits
-            time.sleep(1)
+        if quantity >= min_qty:
+            # Place the sell order
+            order = client.order_market_sell(symbol=symbol, quantity=quantity)
+            logging.info(f"Sell order placed for {symbol}: {order}")
+        else:
+            logging.warning(f"Insufficient balance to sell {symbol}. Available: {asset_balance}, Required: {min_qty}")
 
-        # Repeat the process every 5 minutes
-        print("Waiting for the next cycle...")
-        time.sleep(300)
+    except Exception as e:
+        logging.error(f"Error placing sell order for {symbol}: {e}")
 
-        # Display the current win/loss status
-        print(f"Total Wins: {total_wins}, Total Losses: {total_losses}, Total Profit: {total_profit}")
+# Main trading loop
+def trade():
+    """Main trading loop."""
+    for symbol in symbols:
+        df = get_ohlcv(symbol, lookback=lookback)
+        df = calculate_bollinger_bands(df, window=bollinger_window, std_dev=bollinger_std_dev)
+        df = calculate_rsi(df)
+        logging.debug(f"{symbol}: Buy signal = {check_buy_signal(symbol, df)}")
+        logging.debug(f"{symbol}: Sell signal = {check_sell_signal(symbol, df)}")
+        if check_buy_signal(symbol, df) and (time.time() - last_buy_time[symbol]) > cooldown_period:
+            quantity = calculate_quantity_in_usdt(symbol, usdt_amount)
+            place_buy_order(symbol, quantity)
+            last_buy_time[symbol] = time.time()
 
+        elif check_sell_signal(symbol, df):
+            place_sell_order(symbol)
+
+# Run the bot
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            trade()
+            time.sleep(60)  # Run every minute
+        except Exception as e:
+            logging.error(f"Error in main loop: {e}")
+            time.sleep(60)
