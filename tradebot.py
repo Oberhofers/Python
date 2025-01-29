@@ -56,6 +56,23 @@ def get_cached_balance():
         last_balance_check = time.time()
     return cached_balance
 
+def calculate_bollinger_bands(df, window=20, std_dev=2):
+    """Calculate Bollinger Bands."""
+    df['SMA'] = df['close'].rolling(window=window).mean()
+    df['STD'] = df['close'].rolling(window=window).std()
+    df['upper_band'] = df['SMA'] + (df['STD'] * std_dev)
+    df['lower_band'] = df['SMA'] - (df['STD'] * std_dev)
+    return df
+
+def calculate_rsi(df, window=14):
+    """Calculate the Relative Strength Index (RSI)."""
+    delta = df['close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+    return df
+
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
     """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
     df.index = pd.to_datetime(df.index, unit='ms')  # Convert timestamps
