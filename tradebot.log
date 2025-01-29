@@ -32487,3 +32487,43 @@
 2025-01-29 13:25:30,592 - DEBUG - ANIMEUSDT: Buy signal = False
 2025-01-29 13:25:30,593 - DEBUG - ANIMEUSDT: Sell signal = False
 2025-01-29 13:25:30,823 - INFO - Saved trading signals plot to ANIMEUSDT_trading_signals.png
+2025-01-29 13:26:31,054 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157190828&interval=1h&limit=1&startTime=0&symbol=DOGEUSDT HTTP/1.1" 200 172
+2025-01-29 13:26:31,282 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797190827&symbol=DOGEUSDT HTTP/1.1" 200 5101
+2025-01-29 13:26:31,351 - DEBUG - DOGEUSDT: Buy signal = False
+2025-01-29 13:26:31,351 - DEBUG - DOGEUSDT: Sell signal = False
+2025-01-29 13:26:31,588 - INFO - Saved trading signals plot to DOGEUSDT_trading_signals.png
+2025-01-29 13:26:31,819 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157191592&interval=1h&limit=1&startTime=0&symbol=SHIBUSDT HTTP/1.1" 200 175
+2025-01-29 13:26:32,048 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797191591&symbol=SHIBUSDT HTTP/1.1" 200 5274
+2025-01-29 13:26:32,141 - DEBUG - SHIBUSDT: Buy signal = False
+2025-01-29 13:26:32,141 - DEBUG - SHIBUSDT: Sell signal = False
+2025-01-29 13:26:32,428 - INFO - Saved trading signals plot to SHIBUSDT_trading_signals.png
+2025-01-29 13:26:32,660 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157192432&interval=1h&limit=1&startTime=0&symbol=SPELLUSDT HTTP/1.1" 200 174
+2025-01-29 13:26:32,890 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797192431&symbol=SPELLUSDT HTTP/1.1" 200 5482
+2025-01-29 13:26:32,928 - DEBUG - SPELLUSDT: Buy signal = False
+2025-01-29 13:26:32,928 - DEBUG - SPELLUSDT: Sell signal = False
+2025-01-29 13:26:33,186 - INFO - Saved trading signals plot to SPELLUSDT_trading_signals.png
+2025-01-29 13:26:33,417 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157193191&interval=1h&limit=1&startTime=0&symbol=ANIMEUSDT HTTP/1.1" 200 178
+2025-01-29 13:26:33,645 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797193190&symbol=ANIMEUSDT HTTP/1.1" 200 4702
+2025-01-29 13:26:33,727 - DEBUG - ANIMEUSDT: Buy signal = False
+2025-01-29 13:26:33,727 - DEBUG - ANIMEUSDT: Sell signal = False
+2025-01-29 13:26:33,983 - INFO - Saved trading signals plot to ANIMEUSDT_trading_signals.png
+2025-01-29 13:27:34,219 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157253989&interval=1h&limit=1&startTime=0&symbol=DOGEUSDT HTTP/1.1" 200 172
+2025-01-29 13:27:34,447 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797253988&symbol=DOGEUSDT HTTP/1.1" 200 5104
+2025-01-29 13:27:34,523 - DEBUG - DOGEUSDT: Buy signal = False
+2025-01-29 13:27:34,523 - DEBUG - DOGEUSDT: Sell signal = False
+2025-01-29 13:27:34,777 - INFO - Saved trading signals plot to DOGEUSDT_trading_signals.png
+2025-01-29 13:27:35,016 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157254781&interval=1h&limit=1&startTime=0&symbol=SHIBUSDT HTTP/1.1" 200 175
+2025-01-29 13:27:35,247 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797254781&symbol=SHIBUSDT HTTP/1.1" 200 5274
+2025-01-29 13:27:35,322 - DEBUG - SHIBUSDT: Buy signal = False
+2025-01-29 13:27:35,322 - DEBUG - SHIBUSDT: Sell signal = False
+2025-01-29 13:27:35,563 - INFO - Saved trading signals plot to SHIBUSDT_trading_signals.png
+2025-01-29 13:27:39,117 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157255567&interval=1h&limit=1&startTime=0&symbol=SPELLUSDT HTTP/1.1" 200 174
+2025-01-29 13:27:39,343 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797255566&symbol=SPELLUSDT HTTP/1.1" 200 5480
+2025-01-29 13:27:39,379 - DEBUG - SPELLUSDT: Buy signal = False
+2025-01-29 13:27:39,380 - DEBUG - SPELLUSDT: Sell signal = False
+2025-01-29 13:27:39,604 - INFO - Saved trading signals plot to SPELLUSDT_trading_signals.png
+2025-01-29 13:27:39,834 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?endTime=1738157259608&interval=1h&limit=1&startTime=0&symbol=ANIMEUSDT HTTP/1.1" 200 178
+2025-01-29 13:27:40,064 - DEBUG - https://api.binance.com:443 "GET /api/v3/klines?interval=1h&limit=1000&startTime=1737797259607&symbol=ANIMEUSDT HTTP/1.1" 200 4702
+2025-01-29 13:27:40,127 - DEBUG - ANIMEUSDT: Buy signal = False
+2025-01-29 13:27:40,127 - DEBUG - ANIMEUSDT: Sell signal = False
+2025-01-29 13:27:40,362 - INFO - Saved trading signals plot to ANIMEUSDT_trading_signals.png
