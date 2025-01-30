@@ -127,6 +127,11 @@ def trade():
             continue
         df = calculate_bollinger_bands(df)
         df = calculate_rsi(df)
+
+        latest_rsi = df.iloc[-1]['RSI']  # Get the most recent RSI value
+
+        # Print RSI in every loop iteration
+        logging.info(f"RSI for {symbol}: {latest_rsi:.2f}")
         
         buy_signal = check_buy_signal(df)
         sell_signal = check_sell_signal(df)
