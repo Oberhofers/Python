@@ -27,7 +27,7 @@ if not api_key or not api_secret:
 client = Client(api_key, api_secret)
 
 # Trading parameters
-symbols = ['DOGEUSDT', 'SHIBUSDT', 'SPELLUSDT', 'ANIMEUSDT']
+symbols = ['DOGEUSDT', 'SHIBUSDT', 'SPELLUSDT', 'ANIMEUSDT',"HBARUSDT"]
 usdt_amount = 10
 lookback = 100
 bollinger_window = 20
