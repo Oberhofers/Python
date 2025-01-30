@@ -30,8 +30,8 @@ client = Client(api_key, api_secret)
 symbols = ["ADAUSDT", "SOLUSDT", "XRPUSDT"]
 usdt_amount = 100
 lookback = 100
-bollinger_window = 20
-bollinger_std_dev = 2
+bollinger_window = 14
+bollinger_std_dev = 1.5
 cooldown_period = 60
 last_buy_time = {symbol: 0 for symbol in symbols}
 cached_balance = None
@@ -75,7 +75,7 @@ def calculate_bollinger_bands(df):
     df['lower_band'] = df['SMA'] - (df['STD'] * bollinger_std_dev)
     return df
 
-def calculate_rsi(df, window=14):
+def calculate_rsi(df, window=7):
     """Calculate the Relative Strength Index (RSI)."""
     delta = df['close'].diff()
     gain = delta.where(delta > 0, 0).rolling(window=window).mean()
@@ -86,12 +86,12 @@ def calculate_rsi(df, window=14):
 
 def check_buy_signal(df):
     """Check if a buy signal is triggered."""
-    return df.iloc[-1]['close'] < df.iloc[-1]['lower_band'] and df.iloc[-1]['RSI'] < 30
+    return df.iloc[-1]['close'] < df.iloc[-1]['lower_band'] and df.iloc[-1]['RSI'] < 40
 
 def check_sell_signal(df):
     """Check if a sell signal is triggered."""
     """return df.iloc[-1]['RSI'] > 70 """
-    return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 70
+    return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 60
 
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
     """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     while True:
         try:
             trade()
-            time.sleep(60)
+            time.sleep(5)
         except Exception as e:
             logging.error(f"Error in main loop: {e}")
-            time.sleep(60)
+            time.sleep(5)
