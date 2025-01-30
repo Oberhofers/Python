@@ -90,7 +90,8 @@ def check_buy_signal(df):
 
 def check_sell_signal(df):
     """Check if a sell signal is triggered."""
-    return df.iloc[-1]['RSI'] > 70
+    """return df.iloc[-1]['RSI'] > 70 """
+    return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 70
 
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
     """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
