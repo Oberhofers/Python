@@ -93,21 +93,30 @@ def check_sell_signal(df):
     return df.iloc[-1]['RSI'] > 70
 
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
-    """Plot the price with Bollinger Bands and buy/sell signals."""
+    """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
+    df.index = pd.to_datetime(df.index, unit='ms')  # Convert timestamps
     plt.figure(figsize=(14, 8))
     plt.plot(df.index, df['close'], label='Close Price', color='black', alpha=0.5)
     plt.plot(df.index, df['upper_band'], label='Upper Band', color='red', linestyle='--')
     plt.plot(df.index, df['lower_band'], label='Lower Band', color='green', linestyle='--')
     plt.plot(df.index, df['SMA'], label='SMA', color='blue', linestyle='-.')
-    plt.scatter(df.index[buy_signals], df['close'].iloc[buy_signals], marker='^', color='green', label='Buy Signal')
-    plt.scatter(df.index[sell_signals], df['close'].iloc[sell_signals], marker='v', color='red', label='Sell Signal')
+    
+    # Ensure buy_signals and sell_signals are lists of indices
+    buy_indices = [i for i, val in enumerate(buy_signals) if val]
+    sell_indices = [i for i, val in enumerate(sell_signals) if val]
+    
+    plt.scatter(df.index[buy_indices], df['close'].iloc[buy_indices], marker='^', color='green', label='Buy Signal')
+    plt.scatter(df.index[sell_indices], df['close'].iloc[sell_indices], marker='v', color='red', label='Sell Signal')
+    
     plt.xlabel('Time')
     plt.ylabel('Price (USDT)')
-    plt.xticks(rotation=45)
     plt.legend()
     plt.grid()
+    plt.xticks(rotation=45)
     plt.savefig(f'{symbol}_trading_signals.png')
     plt.close()
+    logging.info(f"Saved trading signals plot for {symbol}")
+
 
 def trade():
     """Main trading function."""
