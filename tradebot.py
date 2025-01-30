@@ -81,23 +81,39 @@ def calculate_rsi(df, window=14):
     return df
 
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
-    """Plot the price with Bollinger Bands and buy/sell signals."""
-    df.index = pd.to_datetime(df.index, unit='ms')  # Convert timestamps
+    """Plot price with Bollinger Bands and buy/sell signals, ensuring time is displayed correctly."""
+    
+    # Convert timestamp from milliseconds and set it as index
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+    df.set_index('timestamp', inplace=True)
+    
+    # Ensure signals are properly extracted
+    buy_indices = df.index[buy_signals].tolist()  # Extract timestamps for buys
+    sell_indices = df.index[sell_signals].tolist()  # Extract timestamps for sells
+
     plt.figure(figsize=(14, 8))
     plt.plot(df.index, df['close'], label='Close Price', color='black', alpha=0.5)
     plt.plot(df.index, df['upper_band'], label='Upper Band', color='red', linestyle='--')
     plt.plot(df.index, df['lower_band'], label='Lower Band', color='green', linestyle='--')
     plt.plot(df.index, df['SMA'], label='SMA', color='blue', linestyle='-.')
-    plt.scatter(df.index[buy_signals], df['close'].iloc[buy_signals], marker='^', color='green', label='Buy Signal')
-    plt.scatter(df.index[sell_signals], df['close'].iloc[sell_signals], marker='v', color='red', label='Sell Signal')
+
+    # Plot buy and sell signals correctly
+    plt.scatter(buy_indices, df.loc[buy_indices, 'close'], marker='^', color='green', label='Buy Signal', s=100)
+    plt.scatter(sell_indices, df.loc[sell_indices, 'close'], marker='v', color='red', label='Sell Signal', s=100)
+
     plt.xlabel('Time')
     plt.ylabel('Price (USDT)')
     plt.legend()
     plt.grid()
     plt.xticks(rotation=45)
+    plt.gcf().autofmt_xdate()
+
     plt.savefig(f'{symbol}_trading_signals.png')
     plt.close()
     logging.info(f"Saved trading signals plot for {symbol}")
+
+    # Debugging: Print number of buy and sell signals
+    print(f"{symbol} - Buy signals: {len(buy_indices)}, Sell signals: {len(sell_indices)}")
 
 def check_buy_signal(symbol, df, threshold=1.05):
     """Check buy signal based on latest data."""
