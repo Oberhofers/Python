@@ -93,6 +93,30 @@ def check_sell_signal(df):
     """return df.iloc[-1]['RSI'] > 70 """
     return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 60
 
+def execute_buy_order(symbol, usdt_amount):
+    """Execute a market buy order."""
+    try:
+        logging.info(f"Placing buy order for {symbol}")
+        order = client.order_market_buy(
+            symbol=symbol,
+            quantity=usdt_amount / float(client.get_symbol_ticker(symbol=symbol)['price'])  # Calculate quantity to buy
+        )
+        logging.info(f"Buy order placed for {symbol}: {order}")
+    except Exception as e:
+        logging.error(f"Error placing buy order for {symbol}: {e}")
+
+def execute_sell_order(symbol, quantity):
+    """Execute a market sell order."""
+    try:
+        logging.info(f"Placing sell order for {symbol}, Quantity: {quantity}")
+        order = client.order_market_sell(
+            symbol=symbol,
+            quantity=quantity
+        )
+        logging.info(f"Sell order placed for {symbol}: {order}")
+    except Exception as e:
+        logging.error(f"Error placing sell order for {symbol}: {e}")
+
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
     """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
     df.index = pd.to_datetime(df.index, unit='ms')  # Convert timestamps
@@ -139,11 +163,13 @@ def trade():
         sell_signals = [df.index[-1]] if sell_signal else []
         
         if buy_signal:
-            logging.info(f"Buying {symbol}")
+            logging.info(f"Buy signal detected for {symbol}")
+            execute_buy_order(symbol, usdt_amount)
         if sell_signal:
             quantity_to_sell = get_symbol_balance(symbol)
             if quantity_to_sell > 0:
-                logging.info(f"Selling {quantity_to_sell} of {symbol}")
+                logging.info(f"Sell signal detected for {symbol}")
+                execute_sell_order(symbol, balance)
         
         plot_trading_signals(symbol, df, buy_signals, sell_signals)
 
