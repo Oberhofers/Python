@@ -27,7 +27,7 @@ if not api_key or not api_secret:
 client = Client(api_key, api_secret)
 
 # Trading parameters
-symbols = ["ADAUSDT", "SOLUSDT", "XRPUSDT"]
+symbols = ["ADAUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
 usdt_amount = 100
 lookback = 100
 bollinger_window = 14
