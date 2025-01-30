@@ -74,7 +74,7 @@ def calculate_rsi(df, window=14):
     return df
 
 def plot_trading_signals(symbol, df, buy_signals, sell_signals):
-    """Plot the price with Bollinger Bands and buy/sell signals, with correct time axis."""
+    """Plot the price with Bollinger Bands and buy/sell signals."""
     df.index = pd.to_datetime(df.index, unit='ms')  # Convert timestamps
     plt.figure(figsize=(14, 8))
     plt.plot(df.index, df['close'], label='Close Price', color='black', alpha=0.5)
@@ -97,7 +97,49 @@ def check_buy_signal(symbol, df, threshold=1.05):
     if len(df) < bollinger_window:
         return False
     lower_band, close_price, rsi = df.iloc[-1][['lower_band', 'close', 'RSI']]
-    return close_price < lower_band * threshold and rsi > 20
+    return close_price < lower_band * threshold and rsi < 30  # Buy when RSI is below 30 (oversold condition)
+
+def check_sell_signal(symbol, df, threshold=70):
+    """Check sell signal based on RSI."""
+    if len(df) < bollinger_window:
+        return False
+    close_price, rsi = df.iloc[-1][['close', 'RSI']]
+    return rsi > threshold  # Sell when RSI is above 70 (overbought condition)
+
+def calculate_quantity_in_usdt(symbol, usdt_amount):
+    """Calculate how much of the symbol to buy/sell with the given amount of USDT."""
+    price = safe_api_call(client.get_symbol_ticker, symbol=symbol)
+    if not price:
+        return 0
+    return usdt_amount / float(price['price'])
+
+def place_buy_order(symbol, quantity):
+    """Place a buy order for the given symbol and quantity."""
+    try:
+        order = client.order_market_buy(symbol=symbol, quantity=quantity)
+        logging.info(f"Buy order placed for {symbol} with quantity {quantity}")
+        return order
+    except Exception as e:
+        logging.error(f"Error placing buy order for {symbol}: {e}")
+        return None
+
+def place_sell_order(symbol, quantity):
+    """Place a sell order for the given symbol and quantity."""
+    try:
+        order = client.order_market_sell(symbol=symbol, quantity=quantity)
+        logging.info(f"Sell order placed for {symbol} with quantity {quantity}")
+        return order
+    except Exception as e:
+        logging.error(f"Error placing sell order for {symbol}: {e}")
+        return None
+
+def get_open_position(symbol):
+    """Get the current open position for the symbol."""
+    open_orders = client.get_open_orders(symbol=symbol)
+    if open_orders:
+        # Assuming you are tracking the quantity bought
+        return open_orders[0]  # This is a simplification, you may need to enhance this logic
+    return None
 
 def trade():
     """Main trading function."""
@@ -108,6 +150,8 @@ def trade():
         df = pd.DataFrame([[float(x) for x in k[:5]] for k in df], columns=['open', 'high', 'low', 'close', 'volume'])
         df = calculate_bollinger_bands(df, bollinger_window, bollinger_std_dev)
         df = calculate_rsi(df)
+
+        # Check for buy signal
         buy_signal = check_buy_signal(symbol, df)
         if buy_signal and (time.time() - last_buy_time[symbol]) > cooldown_period:
             balance = get_cached_balance()
@@ -115,13 +159,22 @@ def trade():
                 quantity = calculate_quantity_in_usdt(symbol, usdt_amount)
                 place_buy_order(symbol, quantity)
                 last_buy_time[symbol] = time.time()
+
+        # Check for sell signal
+        sell_signal = check_sell_signal(symbol, df)
+        if sell_signal:
+            position = get_open_position(symbol)
+            if position:
+                quantity_to_sell = position['origQty']  # Assuming position tracks quantity
+                place_sell_order(symbol, quantity_to_sell)
+
         plot_trading_signals(symbol, df, [], [])
 
 if __name__ == "__main__":
     while True:
         try:
             trade()
-            time.sleep(60)
+            time.sleep(60)  # Wait for the next iteration
         except Exception as e:
             logging.error(f"Error in main loop: {e}")
             time.sleep(60)
