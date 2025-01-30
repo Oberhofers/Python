@@ -93,17 +93,54 @@ def check_sell_signal(df):
     """return df.iloc[-1]['RSI'] > 70 """
     return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 60
 
+def get_symbol_precision(symbol):
+    """Fetch symbol precision and minimum quantity."""
+    try:
+        info = client.get_symbol_info(symbol)
+        if info:
+            for filter in info['filters']:
+                if filter['filterType'] == 'LOT_SIZE':
+                    min_qty = float(filter['minQty'])  # Minimum quantity allowed
+                    step_size = float(filter['stepSize'])  # Precision of the quantity
+                    return min_qty, step_size
+    except Exception as e:
+        logging.error(f"Error fetching symbol precision for {symbol}: {e}")
+    return None, None
+
 def execute_buy_order(symbol, usdt_amount):
-    """Execute a market buy order."""
+    """Execute a market buy order with quantity rounded to the correct precision."""
     try:
         logging.info(f"Placing buy order for {symbol}")
+        
+        # Get the current price of the symbol
+        price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+        
+        # Calculate the quantity to buy based on the USDT amount and current price
+        quantity = usdt_amount / price
+        
+        # Fetch the symbol's precision and minimum quantity
+        min_qty, step_size = get_symbol_precision(symbol)
+        if min_qty is None or step_size is None:
+            logging.error(f"Could not retrieve precision for {symbol}. Aborting buy order.")
+            return
+        
+        # Round the quantity to the correct number of decimal places
+        quantity = round(quantity, int(abs(step_size).as_integer_ratio()[1]))  # Round to precision
+        
+        # Ensure the quantity meets the minimum quantity requirement
+        if quantity < min_qty:
+            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting buy order.")
+            return
+        
+        # Place the buy order
         order = client.order_market_buy(
             symbol=symbol,
-            quantity=usdt_amount / float(client.get_symbol_ticker(symbol=symbol)['price'])  # Calculate quantity to buy
+            quantity=quantity
         )
         logging.info(f"Buy order placed for {symbol}: {order}")
     except Exception as e:
         logging.error(f"Error placing buy order for {symbol}: {e}")
+
 
 def execute_sell_order(symbol, quantity):
     """Execute a market sell order."""
