@@ -56,6 +56,13 @@ def get_cached_balance():
         last_balance_check = time.time()
     return cached_balance
 
+def get_symbol_balance(symbol):
+    """Fetch the balance of the symbol to sell."""
+    balance = safe_api_call(client.get_asset_balance, asset=symbol[:-4])  # Removing "USDT" suffix for symbol
+    if balance and 'free' in balance:
+        return float(balance['free'])
+    return 0.0
+
 def calculate_bollinger_bands(df, window=20, std_dev=2):
     """Calculate Bollinger Bands."""
     df['SMA'] = df['close'].rolling(window=window).mean()
@@ -133,14 +140,6 @@ def place_sell_order(symbol, quantity):
         logging.error(f"Error placing sell order for {symbol}: {e}")
         return None
 
-def get_open_position(symbol):
-    """Get the current open position for the symbol."""
-    open_orders = client.get_open_orders(symbol=symbol)
-    if open_orders:
-        # Assuming you are tracking the quantity bought
-        return open_orders[0]  # This is a simplification, you may need to enhance this logic
-    return None
-
 def trade():
     """Main trading function."""
     for symbol in symbols:
@@ -163,9 +162,8 @@ def trade():
         # Check for sell signal
         sell_signal = check_sell_signal(symbol, df)
         if sell_signal:
-            position = get_open_position(symbol)
-            if position:
-                quantity_to_sell = position['origQty']  # Assuming position tracks quantity
+            quantity_to_sell = get_symbol_balance(symbol)
+            if quantity_to_sell > 0:
                 place_sell_order(symbol, quantity_to_sell)
 
         plot_trading_signals(symbol, df, [], [])
