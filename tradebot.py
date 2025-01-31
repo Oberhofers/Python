@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 from logging.handlers import RotatingFileHandler
 from binance.client import Client
+import math
 
 
 # Define the log file and rotation settings
@@ -201,57 +202,38 @@ def execute_buy_order(symbol, usdt_amount):
 
 
 
+
+def get_step_size(symbol):
+    """Fetch the step size from the Binance API."""
+    symbol_info = safe_api_call(client.get_symbol_info, symbol)
+    if symbol_info:
+        for filter in symbol_info['filters']:
+            if filter['filterType'] == 'LOT_SIZE':
+                return float(filter['stepSize'])
+    logging.error(f"Could not retrieve step size for {symbol}.")
+    return None
+
 def execute_sell_order(symbol, quantity):
-    """Execute a market sell order with proper balance check and precision handling."""
+    """Place a sell order, adjusting quantity to the step size."""
+    step_size = get_step_size(symbol)
+    if step_size is None:
+        logging.error(f"Could not retrieve step size for {symbol}. Aborting sell order.")
+        return
+    
+    # Round down the quantity to the nearest step size
+    quantity = math.floor(quantity / step_size) * step_size
+    logging.info(f"Adjusted quantity for {symbol}: {quantity}")
+
+    # Place the sell order
     try:
-        current_time = time.time()
-        if current_time - last_buy_time[symbol] < cooldown_period:
-            logging.info(f"Cooldown active for {symbol}. Skipping sell order.")
-            return
-        logging.info(f"Checking {symbol} balance before selling.")
-
-        # Get the available asset balance
-        asset_balance = safe_api_call(client.get_asset_balance, asset=symbol[:-4])  # Remove 'USDT' from symbol
-        if not asset_balance or 'free' not in asset_balance:
-            logging.error(f"Failed to retrieve balance for {symbol}. Aborting sell order for {symbol}.")
-            return
-
-        asset_balance = float(asset_balance['free'])
-        logging.info(f"Current {symbol} balance: {asset_balance:.6f}")
-
-        # Ensure there is enough balance to sell
-        if asset_balance < quantity:
-            logging.warning(f"Insufficient {symbol} balance ({asset_balance:.6f}). Needed: {quantity}. Aborting sell order for {symbol}.")
-            return
-
-        # Fetch symbol precision and minimum quantity
-        min_qty, step_size = get_symbol_precision(symbol)
-        if min_qty is None or step_size is None:
-            logging.error(f"Could not retrieve precision for {symbol}. Aborting sell order for {symbol}.")
-            return
-
-        # Adjust quantity to match Binance's precision
-        precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
-        quantity = round(quantity, precision)
-        
-        
-
-        # Ensure the quantity meets the minimum quantity requirement
-        if quantity < min_qty:
-            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting sell order for {symbol}.")
-            return
-
-        # Place the sell order
-        logging.debug(f"Attempting to place sell order for {symbol} with quantity: {quantity}")
         order = safe_api_call(client.order_market_sell, symbol=symbol, quantity=quantity)
-
         if order:
             logging.info(f"Sell order placed for {symbol}: {order}")
         else:
-            logging.error(f"Failed to place sell order for {symbol}")
-
+            logging.error(f"Failed to place sell order for {symbol}.")
     except Exception as e:
         logging.error(f"Error placing sell order for {symbol}: {e}")
+        
 
 
 def plot_trading_signals(symbol, df, buy_signal, sell_signal):
