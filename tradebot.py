@@ -230,8 +230,8 @@ def execute_sell_order(symbol, quantity):
             return
 
         # Adjust quantity to match Binance's precision
-         precision = abs(int(math.log10(step_size)))  # Get decimal places allowed
-         quantity = round(quantity - (quantity % step_size), precision) 
+        precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
+        quantity = round(quantity, precision) * step_size
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
