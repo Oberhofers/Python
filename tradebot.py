@@ -199,6 +199,13 @@ def execute_buy_order(symbol, usdt_amount):
     except Exception as e:
         logging.error(f"Error placing buy order for {symbol}: {e}")
 
+def round_down(quantity, precision):
+    """Round the quantity down to the specified precision."""
+    factor = 10 ** precision  # Create a factor to shift the decimal point
+    return math.floor(quantity * factor) / factor  # Round down
+
+
+
 
 def execute_sell_order(symbol, quantity):
     """Execute a market sell order with proper balance check and precision handling."""
@@ -231,7 +238,7 @@ def execute_sell_order(symbol, quantity):
 
         # Adjust quantity to match Binance's precision
         precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
-        quantity = round(quantity, precision) * step_size
+        quantity = round_down(quantity, precision)
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
