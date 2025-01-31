@@ -28,11 +28,11 @@ client = Client(api_key, api_secret)
 
 # Trading parameters
 symbols = ["ADAUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "SPELLUSDT", "BTCUSDT", "ETHUSDT"]
-usdt_amount = 5
+usdt_amount = 20
 lookback = 100
 bollinger_window = 14
 bollinger_std_dev = 1.5
-cooldown_period = 60
+cooldown_period = 3600
 last_buy_time = {symbol: 0 for symbol in symbols}
 cached_balance = None
 last_balance_check = 0
@@ -108,7 +108,14 @@ import math
 
 def execute_buy_order(symbol, usdt_amount):
     """Execute a market buy order with proper balance check and precision handling."""
+    
     try:
+        current_time = time.time()
+        if current_time - last_buy_time[symbol] < cooldown_period:
+            logging.info(f"Cooldown active for {symbol}. Skipping buy order.")
+            return
+        
+        
         logging.info(f"Checking USDT balance before buying {symbol}.")
 
         # Get the available USDT balance
@@ -161,6 +168,10 @@ def execute_buy_order(symbol, usdt_amount):
 def execute_sell_order(symbol, quantity):
     """Execute a market sell order with proper balance check and precision handling."""
     try:
+        current_time = time.time()
+        if current_time - last_buy_time[symbol] < cooldown_period:
+            logging.info(f"Cooldown active for {symbol}. Skipping sell order.")
+            return
         logging.info(f"Checking {symbol} balance before selling.")
 
         # Get the available asset balance
@@ -223,7 +234,7 @@ def plot_trading_signals(symbol, df, buy_signal, sell_signal):
     plt.close()
 
 def trade():
-    for symbol in symbols:
+     for symbol in symbols:
         df = get_historical_data(symbol)
         if df is None:
             continue
