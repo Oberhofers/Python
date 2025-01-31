@@ -163,7 +163,7 @@ def execute_buy_order(symbol, usdt_amount):
 
         # Ensure there is enough USDT to buy
         if usdt_balance < usdt_amount:
-            logging.warning(f"Insufficient USDT balance ({usdt_balance:.2f}). Needed: {usdt_amount}. Aborting buy order.")
+            logging.warning(f"Insufficient USDT balance ({usdt_balance:.2f}). Needed: {usdt_amount}. Aborting buy order for {symbol}.")
             return
 
         # Get the current price of the symbol
@@ -175,7 +175,7 @@ def execute_buy_order(symbol, usdt_amount):
         # Fetch symbol's precision and minimum quantity
         min_qty, step_size = get_symbol_precision(symbol)
         if min_qty is None or step_size is None:
-            logging.error(f"Could not retrieve precision for {symbol}. Aborting buy order.")
+            logging.error(f"Could not retrieve precision for {symbol}. Aborting buy order for {symbol}.")
             return
 
         # **Fix: Adjust quantity using stepSize**
@@ -184,7 +184,7 @@ def execute_buy_order(symbol, usdt_amount):
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
-            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting buy order.")
+            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting buy order for {symbol}.")
             return
 
         # Place the buy order
@@ -211,7 +211,7 @@ def execute_sell_order(symbol, quantity):
         # Get the available asset balance
         asset_balance = safe_api_call(client.get_asset_balance, asset=symbol[:-4])  # Remove 'USDT' from symbol
         if not asset_balance or 'free' not in asset_balance:
-            logging.error(f"Failed to retrieve balance for {symbol}. Aborting sell order.")
+            logging.error(f"Failed to retrieve balance for {symbol}. Aborting sell order for {symbol}.")
             return
 
         asset_balance = float(asset_balance['free'])
@@ -219,13 +219,13 @@ def execute_sell_order(symbol, quantity):
 
         # Ensure there is enough balance to sell
         if asset_balance < quantity:
-            logging.warning(f"Insufficient {symbol} balance ({asset_balance:.6f}). Needed: {quantity}. Aborting sell order.")
+            logging.warning(f"Insufficient {symbol} balance ({asset_balance:.6f}). Needed: {quantity}. Aborting sell order for {symbol}.")
             return
 
         # Fetch symbol precision and minimum quantity
         min_qty, step_size = get_symbol_precision(symbol)
         if min_qty is None or step_size is None:
-            logging.error(f"Could not retrieve precision for {symbol}. Aborting sell order.")
+            logging.error(f"Could not retrieve precision for {symbol}. Aborting sell order for {symbol}.")
             return
 
         # Adjust quantity to match Binance's precision
@@ -234,7 +234,7 @@ def execute_sell_order(symbol, quantity):
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
-            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting sell order.")
+            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting sell order for {symbol}.")
             return
 
         # Place the sell order
