@@ -28,7 +28,7 @@ client = Client(api_key, api_secret)
 
 # Trading parameters
 symbols = ["ADAUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "SPELLUSDT", "BTCUSDT", "ETHUSDT"]
-usdt_amount = 100
+usdt_amount = 5
 lookback = 100
 bollinger_window = 14
 bollinger_std_dev = 1.5
