@@ -83,7 +83,7 @@ def calculate_rsi(df, window=7):
     df['RSI'] = 100 - (100 / (1 + rs))
     return df
 
-def check_buy_signal(df):
+def check_buy_signal(df,symbol):
     """return df.iloc[-1]['close'] < df.iloc[-1]['lower_band'] and df.iloc[-1]['RSI'] < 40"""
         # Calculate the current RSI and price condition
     rsi_value = df.iloc[-1]['RSI']
@@ -91,34 +91,34 @@ def check_buy_signal(df):
     lower_band = df.iloc[-1]['lower_band']
 
     # Log the RSI and price comparison
-    logging.info(f"Checking buy signal for {df.index[-1]}: Close Price = {close_price}, RSI = {rsi_value}, Lower Band = {lower_band}")
+    logging.info(f"Checking buy signal for {symbol}: Close Price = {close_price}, RSI = {rsi_value}, Lower Band = {lower_band}")
 
     # Check if the price is below the lower band and RSI is under 40
     buy_signal = close_price < lower_band and rsi_value < 40
 
     if buy_signal:
-        logging.info(f"Buy signal triggered for {df.index[-1]}: Close Price = {close_price}, RSI(40) = {rsi_value}")
+        logging.info(f"Buy signal triggered for {symbol}: Close Price = {close_price}, RSI(40) = {rsi_value}")
     else:
-        logging.info(f"No buy signal for {df.index[-1]}: Close Price = {close_price}, RSI(40) = {rsi_value}")
+        logging.info(f"No buy signal for {symbol}: Close Price = {close_price}, RSI(40) = {rsi_value}")
 
     return buy_signal
 
-def check_sell_signal(df):
+def check_sell_signal(df,symbol):
     """return df.iloc[-1]['close'] > df.iloc[-1]['upper_band'] and df.iloc[-1]['RSI'] > 60"""
     rsi_value = df.iloc[-1]['RSI']
     close_price = df.iloc[-1]['close']
     upper_band = df.iloc[-1]['upper_band']
 
     # Log the RSI and price comparison
-    logging.info(f"Checking sell signal for {df.index[-1]}: Close Price = {close_price}, RSI = {rsi_value}, Upper Band = {upper_band}")
+    logging.info(f"Checking sell signal for {symbol}: Close Price = {close_price}, RSI = {rsi_value}, Upper Band = {upper_band}")
 
     # Check if the price is above the upper band and RSI is over 60
     sell_signal = close_price > upper_band and rsi_value > 60
 
     if sell_signal:
-        logging.info(f"Sell signal triggered for {df.index[-1]}: Close Price = {close_price}, RSI(60) = {rsi_value}")
+        logging.info(f"Sell signal triggered for {symbol}: Close Price = {close_price}, RSI(60) = {rsi_value}")
     else:
-        logging.info(f"No sell signal for {df.index[-1]}: Close Price = {close_price}, RSI(60) = {rsi_value}")
+        logging.info(f"No sell signal for {symbol}: Close Price = {close_price}, RSI(60) = {rsi_value}")
 
     return sell_signal
 
@@ -273,8 +273,8 @@ def trade():
             continue
         df = calculate_bollinger_bands(df)
         df = calculate_rsi(df)
-        buy_signal = check_buy_signal(df)
-        sell_signal = check_sell_signal(df)
+        buy_signal = check_buy_signal(df,symbol)
+        sell_signal = check_sell_signal(df,symbol)
         if buy_signal:
             execute_buy_order(symbol, usdt_amount)
         if sell_signal:
