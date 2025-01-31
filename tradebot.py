@@ -238,7 +238,9 @@ def execute_sell_order(symbol, quantity):
 
         # Adjust quantity to match Binance's precision
         precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
-        quantity = round_down(quantity, precision)
+        adj_quantity = round_down(quantity, precision)
+        logging.error(f"Quatttiy {quantity} adj_quantity {adj_quantity} Minumun Quantity {min_qty} for {symbol}.")
+        
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
