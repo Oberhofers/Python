@@ -238,6 +238,7 @@ def execute_sell_order(symbol, quantity):
             return
 
         # Place the sell order
+        logging.debug(f"Attempting to place sell order for {symbol} with quantity: {quantity}")
         order = safe_api_call(client.order_market_sell, symbol=symbol, quantity=quantity)
 
         if order:
