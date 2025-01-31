@@ -16,6 +16,7 @@ handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=backu
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logging.basicConfig(level=logging.DEBUG, handlers=[handler])
+logging.getLogger('binance').setLevel(logging.WARNING)
 
 # Set up Binance API keys
 api_key = os.getenv('BINANCE_API_KEY')
