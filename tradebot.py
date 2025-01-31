@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 from logging.handlers import RotatingFileHandler
 from binance.client import Client
-import math
+
 
 # Define the log file and rotation settings
 log_file = 'tradebot.log'
@@ -139,7 +139,7 @@ def get_symbol_precision(symbol):
     return None, None
 
 
-import math
+
 
 def execute_buy_order(symbol, usdt_amount):
     """Execute a market buy order with proper balance check and precision handling."""
@@ -199,23 +199,6 @@ def execute_buy_order(symbol, usdt_amount):
     except Exception as e:
         logging.error(f"Error placing buy order for {symbol}: {e}")
 
-import math
-
-def round_down(quantity, precision):
-    """Round the quantity down to the specified precision."""
-    try:
-        if quantity <= 0 or precision < 0:
-            raise ValueError(f"Invalid value. Quantity: {quantity}, Precision: {precision}")
-
-        factor = 10 ** precision  # Create a factor to shift the decimal point
-        rounded_quantity = math.floor(quantity * factor) / factor  # Round down
-        return rounded_quantity
-    except Exception as e:
-        logging.error(f"Error in round_down function: {e}")
-        return None
-
-
-
 
 
 def execute_sell_order(symbol, quantity):
@@ -250,7 +233,7 @@ def execute_sell_order(symbol, quantity):
         # Adjust quantity to match Binance's precision
         precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
         quantity = round(quantity, precision)
-        logging.error(f"Quatttiy {quantity} adj_quantity {adj_quantity} Minumun Quantity {min_qty} for {symbol}.")
+        
         
 
         # Ensure the quantity meets the minimum quantity requirement
