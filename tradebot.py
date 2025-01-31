@@ -5,6 +5,7 @@ import pandas as pd
 import logging
 from logging.handlers import RotatingFileHandler
 from binance.client import Client
+import math
 
 # Define the log file and rotation settings
 log_file = 'tradebot.log'
@@ -229,8 +230,8 @@ def execute_sell_order(symbol, quantity):
             return
 
         # Adjust quantity to match Binance's precision
-        precision = int(abs(step_size).as_integer_ratio()[1])  # Get decimal places
-        quantity = round(quantity, precision)
+         precision = abs(int(math.log10(step_size)))  # Get decimal places allowed
+         quantity = round(quantity - (quantity % step_size), precision) 
 
         # Ensure the quantity meets the minimum quantity requirement
         if quantity < min_qty:
