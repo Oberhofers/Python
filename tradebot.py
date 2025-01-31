@@ -199,10 +199,21 @@ def execute_buy_order(symbol, usdt_amount):
     except Exception as e:
         logging.error(f"Error placing buy order for {symbol}: {e}")
 
+import math
+
 def round_down(quantity, precision):
     """Round the quantity down to the specified precision."""
-    factor = 10 ** precision  # Create a factor to shift the decimal point
-    return math.floor(quantity * factor) / factor  # Round down
+    try:
+        if quantity <= 0 or precision < 0:
+            raise ValueError(f"Invalid value. Quantity: {quantity}, Precision: {precision}")
+
+        factor = 10 ** precision  # Create a factor to shift the decimal point
+        rounded_quantity = math.floor(quantity * factor) / factor  # Round down
+        return rounded_quantity
+    except Exception as e:
+        logging.error(f"Error in round_down function: {e}")
+        return None
+
 
 
 
