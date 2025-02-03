@@ -224,6 +224,10 @@ def execute_sell_order(symbol, quantity):
     quantity = math.floor(quantity / step_size) * step_size
     logging.info(f"Adjusted quantity for {symbol}: {quantity}")
 
+    if quantity == 0.0:
+            logging.error(f"Quantitiy for {symbol} with {quantity} to low. Aborting sell order.")
+            return
+
     # Place the sell order
     try:
         order = safe_api_call(client.order_market_sell, symbol=symbol, quantity=quantity)
