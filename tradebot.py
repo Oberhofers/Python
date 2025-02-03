@@ -42,6 +42,24 @@ last_balance_check = 0
 symbol_precision_cache = {}
 buy_prices = {}
 
+def get_historical_data(symbol, interval='1h', lookback=lookback):
+    """Fetch historical candlestick data for a given symbol."""
+    try:
+        klines = safe_api_call(client.get_klines, symbol=symbol, interval=interval, limit=lookback)
+        if not klines:
+            logging.error(f"Failed to fetch historical data for {symbol}")
+            return None
+
+        df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume',
+                                           'close_time', 'quote_asset_volume', 'num_trades',
+                                           'taker_buy_base', 'taker_buy_quote', 'ignore'])
+        df = df[['timestamp', 'open', 'high', 'low', 'close', 'volume']].astype(float)
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df
+    except Exception as e:
+        logging.error(f"Error fetching historical data for {symbol}: {e}")
+        return None
+
 def safe_api_call(func, *args, **kwargs):
     """Handle API rate limits with exponential backoff."""
     for i in range(5):
