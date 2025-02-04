@@ -338,11 +338,14 @@ def trade():
         df = calculate_rsi(df)
         buy_signal = check_buy_signal(df,symbol)
         sell_signal = check_sell_signal(df,symbol)
+        
         if buy_signal:
             execute_buy_order(symbol, usdt_amount)
+            price = df.iloc[-1]['close']  # Fetch the latest close price
             save_trade_signal(symbol, "BUY", price, df.index[-1])
         if sell_signal:
             execute_sell_order(symbol, get_symbol_balance(symbol))
+            price = df.iloc[-1]['close']  # Fetch the latest close price
             save_trade_signal(symbol, "SELL", price, df.index[-1])
 
         plot_trading_signals(symbol, df)
