@@ -46,12 +46,14 @@ symbol_precision_cache = {}
 
 def save_trade_signal(symbol, signal_type, price, timestamp):
     """Save trade signals (buy/sell) to a CSV file."""
+    logging.info(f"Try to save Tradesignal")
     file_exists = os.path.isfile(signal_file)
     with open(signal_file, mode='a', newline='') as file:
         writer = csv.writer(file)
         if not file_exists:
             writer.writerow(["timestamp", "symbol", "signal_type", "price"])  # Write header if file doesn't exist
         writer.writerow([timestamp, symbol, signal_type, price])
+        logging.info(f"Tradesignal saved")
 
 
 def safe_api_call(func, *args, **kwargs):
