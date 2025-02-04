@@ -50,6 +50,31 @@ cached_balance = None
 last_balance_check = 0
 symbol_precision_cache = {}
 
+
+def get_total_balance():
+    """Calculate the total balance of all assets in USDT."""
+    total_balance = 0.0
+    
+    # Get USDT balance
+    usdt_balance = safe_api_call(client.get_asset_balance, asset="USDT")
+    if usdt_balance and 'free' in usdt_balance:
+        total_balance += float(usdt_balance['free'])
+    
+    # Get balances of other assets and convert to USDT
+    for symbol in symbols:
+        asset = symbol[:-4]  # Remove 'USDT' from the symbol
+        if asset == "USDT":
+            continue
+        
+        asset_balance = safe_api_call(client.get_asset_balance, asset=asset)
+        if asset_balance and 'free' in asset_balance:
+            asset_amount = float(asset_balance['free'])
+            if asset_amount > 0:
+                price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+                total_balance += asset_amount * price
+    
+    return total_balance
+
 def save_trade_signal(symbol, signal_type, price, timestamp):
     """Save trade signals (buy/sell) to a CSV file.
 
@@ -332,7 +357,9 @@ def plot_trading_signals(symbol, df):
 
 
 def trade():
-     for symbol in symbols:
+    total_balance = get_total_balance()
+    logging.info(f"Total balance: {total_balance:.2f} USDT")
+    for symbol in symbols:
         df = get_historical_data(symbol)
         if df is None:
             continue
