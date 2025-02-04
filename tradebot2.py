@@ -8,6 +8,7 @@ from binance.client import Client
 import math
 import csv
 from threading import Lock
+from datetime import datetime
 
 
 # Define the log file and rotation settings
@@ -58,6 +59,7 @@ def save_trade_signal(symbol, signal_type, price, timestamp):
         price (float): The price at which the signal was generated.
         timestamp (str): The timestamp of the signal.
     """
+    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         logging.info("Attempting to save trade signal.")
         
