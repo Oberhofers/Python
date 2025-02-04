@@ -353,6 +353,9 @@ def trade():
         plot_trading_signals(symbol, df)
 
 if __name__ == "__main__":
-    while True:
-        trade()
-        time.sleep(60)
+    try:
+        while True:
+            trade()
+            time.sleep(60)
+    except KeyboardInterrupt:
+        print("\nTrading loop stopped.")
