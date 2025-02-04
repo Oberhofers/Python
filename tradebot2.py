@@ -8,7 +8,6 @@ from binance.client import Client
 import math
 import json
 
-
 # Define the log file and rotation settings
 log_file = 'tradebot.log'
 max_log_size = 1024 * 1024 * 1024  # 1GB
@@ -53,7 +52,7 @@ def load_signals_from_file():
             return data.get('buy_signals', {}), data.get('sell_signals', {})
     return {}, {}
 
-def save_signals_to_file():
+def save_signals_to_file(buy_signals, sell_signals):
     """Save the buy and sell signals to a file."""
     data = {
         'buy_signals': buy_signals,
@@ -121,7 +120,9 @@ def check_buy_signal(df, symbol):
     
     buy_signal = close_price < lower_band and rsi_value < 40
     if buy_signal:
-        buy_signals[symbol].append((df.index[-1], close_price))
+        if symbol not in buy_signals:
+            buy_signals[symbol] = []
+        buy_signals[symbol].append((df.index[-1].isoformat(), close_price))
         logging.info(f"Buy signal triggered for {symbol}: Close Price = {close_price}, RSI(40) = {rsi_value}")
     else:
         logging.info(f"No buy signal for {symbol}: Close Price = {close_price}, RSI(40) = {rsi_value}")
@@ -138,97 +139,16 @@ def check_sell_signal(df, symbol):
     
     sell_signal = close_price > upper_band and rsi_value > 60
     if sell_signal:
-        sell_signals[symbol].append((df.index[-1], close_price))
+        if symbol not in sell_signals:
+            sell_signals[symbol] = []
+        sell_signals[symbol].append((df.index[-1].isoformat(), close_price))
         logging.info(f"Sell signal triggered for {symbol}: Close Price = {close_price}, RSI(60) = {rsi_value}")
     else:
         logging.info(f"No sell signal for {symbol}: Close Price = {close_price}, RSI(60) = {rsi_value}")
 
     return sell_signal
 
-def get_symbol_precision(symbol):
-    """Fetch symbol precision and minimum quantity."""
-    if symbol in symbol_precision_cache:
-        return symbol_precision_cache[symbol]
-    info = safe_api_call(client.get_symbol_info, symbol)
-    if info:
-        for filter in info['filters']:
-            if filter['filterType'] == 'LOT_SIZE':
-                min_qty = float(filter['minQty'])
-                step_size = float(filter['stepSize'])
-                symbol_precision_cache[symbol] = (min_qty, step_size)
-                return min_qty, step_size
-    return None, None
-
-def execute_buy_order(symbol, usdt_amount):
-    """Execute a market buy order with proper balance check and precision handling."""
-    try:
-        current_time = time.time()
-        if current_time - last_buy_time[symbol] < cooldown_period:
-            logging.info(f"Cooldown active for {symbol}. Skipping buy order.")
-            return
-        
-        logging.info(f"Checking USDT balance before buying {symbol}.")
-        usdt_balance = safe_api_call(client.get_asset_balance, asset="USDT")
-        if not usdt_balance or 'free' not in usdt_balance:
-            logging.error("Failed to retrieve USDT balance. Aborting buy order.")
-            return
-
-        usdt_balance = float(usdt_balance['free'])
-        logging.info(f"Current USDT balance: {usdt_balance:.2f} USDT")
-
-        if usdt_balance < usdt_amount:
-            logging.warning(f"Insufficient USDT balance ({usdt_balance:.2f}). Needed: {usdt_amount}. Aborting buy order for {symbol}.")
-            return
-
-        price = float(client.get_symbol_ticker(symbol=symbol)['price'])
-        quantity = usdt_amount / price
-
-        min_qty, step_size = get_symbol_precision(symbol)
-        if min_qty is None or step_size is None:
-            logging.error(f"Could not retrieve precision for {symbol}. Aborting buy order for {symbol}.")
-            return
-
-        precision = abs(int(math.log10(step_size)))  
-        quantity = round(quantity - (quantity % step_size), precision)
-
-        if quantity < min_qty:
-            logging.error(f"Calculated quantity {quantity} is less than the minimum required {min_qty}. Aborting buy order for {symbol}.")
-            return
-
-        order = safe_api_call(client.order_market_buy, symbol=symbol, quantity=quantity)
-
-        if order:
-            logging.info(f"Buy order placed for {symbol}: {order}")
-        else:
-            logging.error(f"Failed to place buy order for {symbol}")
-
-    except Exception as e:
-        logging.error(f"Error placing buy order for {symbol}: {e}")
-
-def execute_sell_order(symbol, quantity):
-    """Place a sell order, adjusting quantity to the step size."""
-    step_size = get_step_size(symbol)
-    if step_size is None:
-        logging.error(f"Could not retrieve step size for {symbol}. Aborting sell order.")
-        return
-    
-    quantity = math.floor(quantity / step_size) * step_size
-    logging.info(f"Adjusted quantity for {symbol}: {quantity}")
-
-    if quantity == 0.0:
-            logging.error(f"Quantitiy for {symbol} with {quantity} to low. Aborting sell order.")
-            return
-
-    try:
-        order = safe_api_call(client.order_market_sell, symbol=symbol, quantity=quantity)
-        if order:
-            logging.info(f"Sell order placed for {symbol}: {order}")
-        else:
-            logging.error(f"Failed to place sell order for {symbol}.")
-    except Exception as e:
-        logging.error(f"Error placing sell order for {symbol}: {e}")
-
-def plot_trading_signals(symbol, df, buy_signal, sell_signal):
+def plot_trading_signals(symbol, df, buy_signals, sell_signals):
     """Plot buy/sell signals on a chart."""
     plt.figure(figsize=(14, 8))
     plt.plot(df.index, df['close'], label='Close Price', color='black', alpha=0.5)
@@ -236,17 +156,21 @@ def plot_trading_signals(symbol, df, buy_signal, sell_signal):
     plt.plot(df.index, df['lower_band'], label='Lower Band', color='green', linestyle='--')
     plt.plot(df.index, df['SMA'], label='SMA', color='blue', linestyle='-.')
     
-    # Plot all buy and sell signals from the history
-    if buy_signals[symbol]:
-        buy_dates, buy_prices = zip(*buy_signals[symbol])
+    # Plot buy signals
+    if symbol in buy_signals:
+        buy_dates = [pd.to_datetime(date) for date, _ in buy_signals[symbol]]
+        buy_prices = [price for _, price in buy_signals[symbol]]
         plt.scatter(buy_dates, buy_prices, marker='^', color='green', label='Buy Signal', alpha=0.7)
     
-    if sell_signals[symbol]:
-        sell_dates, sell_prices = zip(*sell_signals[symbol])
+    # Plot sell signals
+    if symbol in sell_signals:
+        sell_dates = [pd.to_datetime(date) for date, _ in sell_signals[symbol]]
+        sell_prices = [price for _, price in sell_signals[symbol]]
         plt.scatter(sell_dates, sell_prices, marker='v', color='red', label='Sell Signal', alpha=0.7)
     
     plt.xlabel('Time')
     plt.ylabel('Price (USDT)')
+    plt.title(f'Trading Signals for {symbol}')
     plt.legend()
     plt.grid()
     plt.xticks(rotation=45)
@@ -263,14 +187,10 @@ def trade():
         df = calculate_rsi(df)
         buy_signal = check_buy_signal(df, symbol)
         sell_signal = check_sell_signal(df, symbol)
-        if buy_signal:
-            execute_buy_order(symbol, usdt_amount)
-        if sell_signal:
-            execute_sell_order(symbol, get_symbol_balance(symbol))
-        plot_trading_signals(symbol, df, buy_signal, sell_signal)
+        plot_trading_signals(symbol, df, buy_signals, sell_signals)
 
     # Save the signals to a file after each trade cycle
-    save_signals_to_file()
+    save_signals_to_file(buy_signals, sell_signals)
 
 if __name__ == "__main__":
     while True:
