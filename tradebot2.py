@@ -7,6 +7,8 @@ from logging.handlers import RotatingFileHandler
 from binance.client import Client
 import math
 import csv
+from threading import Lock
+
 
 # Define the log file and rotation settings
 log_file = 'tradebot.log'
