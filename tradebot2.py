@@ -309,7 +309,7 @@ def trade():
             execute_sell_order(symbol, get_symbol_balance(symbol))
             save_trade_signal(symbol, "SELL", price, df.index[-1])
 
-        plot_trading_signals(symbol, df, buy_signal, sell_signal)
+        plot_trading_signals(symbol, df)
 
 if __name__ == "__main__":
     while True:
