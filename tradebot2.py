@@ -23,6 +23,9 @@ logging.getLogger('binance').setLevel(logging.WARNING)
 # CSV for saving Trade Signals
 signal_file = 'trade_signals.csv'
 
+# Lock for thread safety
+file_lock = Lock()
+
 # Set up Binance API keys
 api_key = os.getenv('BINANCE_API_KEY')
 api_secret = os.getenv('BINANCE_API_SECRET')
@@ -45,16 +48,45 @@ last_balance_check = 0
 symbol_precision_cache = {}
 
 def save_trade_signal(symbol, signal_type, price, timestamp):
-    """Save trade signals (buy/sell) to a CSV file."""
-    logging.info(f"Try to save Tradesignal")
-    file_exists = os.path.isfile(signal_file)
-    with open(signal_file, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        if not file_exists:
-            writer.writerow(["timestamp", "symbol", "signal_type", "price"])  # Write header if file doesn't exist
-        writer.writerow([timestamp, symbol, signal_type, price])
-        logging.info(f"Tradesignal saved")
+    """Save trade signals (buy/sell) to a CSV file.
 
+    Args:
+        symbol (str): The trading symbol (e.g., "BTC-USD").
+        signal_type (str): The type of signal (e.g., "buy" or "sell").
+        price (float): The price at which the signal was generated.
+        timestamp (str): The timestamp of the signal.
+    """
+    try:
+        logging.info("Attempting to save trade signal.")
+        
+        # Validate inputs
+        if not all([symbol, signal_type, price, timestamp]):
+            logging.error("Invalid input parameters.")
+            raise ValueError("All parameters must be non-empty.")
+
+        # Ensure the signal file path is set
+        if not signal_file:
+            logging.error("Signal file path is not defined.")
+            raise ValueError("Signal file path must be defined.")
+
+        # Use a lock to ensure thread safety
+        with file_lock:
+            file_exists = os.path.isfile(signal_file)
+
+            with open(signal_file, mode='a', newline='') as file:
+                writer = csv.writer(file)
+                
+                # Write header if the file doesn't exist
+                if not file_exists:
+                    writer.writerow(["timestamp", "symbol", "signal_type", "price"])
+                
+                # Write the trade signal
+                writer.writerow([timestamp, symbol, signal_type, price])
+                logging.info("Trade signal saved successfully.")
+
+    except Exception as e:
+        logging.error(f"Failed to save trade signal: {e}", exc_info=True)
+        raise
 
 def safe_api_call(func, *args, **kwargs):
     """Handle API rate limits with exponential backoff."""
