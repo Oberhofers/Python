@@ -289,7 +289,7 @@ def plot_trading_signals(symbol, df):
     plt.grid()
     plt.xticks(rotation=45)
     plt.savefig(f'{symbol}_trading_signals.png')
-    plt.show()
+    plt.close()
 
 
 
